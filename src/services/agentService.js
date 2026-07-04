@@ -192,7 +192,7 @@ export const chatWithAgent = async (userId, userMessage, chatHistory = [], custo
       You have tools to perform these operations directly in the database.
       Always execute actions on behalf of the user using your tools.
       When reporting amounts, use the user's currency.
-      CRITICAL: Only access/modify data using the tools provided. Do not invent details not present in the user prompt.
+      CRITICAL: Only access/modify data using the tools provided. Do not invent details not present in the user prompt unless the user explicitly requests you to generate mock/dummy/random test data for simulation or demo purposes.
 
       Current Date and Time: ${currentDateStr}
 
@@ -253,6 +253,12 @@ export const chatWithAgent = async (userId, userMessage, chatHistory = [], custo
             * To confirm, use: \`[Yes, Proceed](action://confirm)\`
             * To cancel, use: \`[Cancel](action://cancel)\`
           - Do not output any other custom navigation links or navigate:// protocols.
+
+      11. MOCK / DUMMY DATA GENERATION:
+          - If the user explicitly asks you to generate random/mock/dummy transactions, wallets, or categories (e.g. "generate 5 random expenses"), you MUST fulfill this request.
+          - Invent realistic names, amounts, categories, and tags, and call the appropriate creation tools (e.g. 'add_transaction') in a loop or sequence to populate the data.
+          - Do not decline mock data generation requests with statements about tracking actual financial activity.
+
 
 
       EXISTING WALLETS:

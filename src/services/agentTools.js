@@ -192,7 +192,7 @@ export const createAgentTools = (userId) => {
 
             // Adjust balance
             const adjustment = typeUpper === 'INCOME' ? amount : -amount;
-            await tx.wallet.update({
+            const updatedWallet = await tx.wallet.update({
               where: { id: wallet.id },
               data: {
                 balance: {
@@ -200,6 +200,10 @@ export const createAgentTools = (userId) => {
                 },
               },
             });
+
+            if (updatedWallet.type === 'CASH' && updatedWallet.balance < 0) {
+              throw new Error(`Insufficient funds. Your "Cash Wallet" balance (${wallet.balance} INR) is not enough for this expense (${amount} INR).`);
+            }
 
             return newTx;
           });
@@ -460,10 +464,14 @@ export const createAgentTools = (userId) => {
             // Revert old transaction's impact on its old wallet
             if (existing.walletId) {
               const oldAdjustment = existing.type === 'INCOME' ? -existing.amount : existing.amount;
-              await tx.wallet.update({
+              const revertedWallet = await tx.wallet.update({
                 where: { id: existing.walletId },
                 data: { balance: { increment: oldAdjustment } },
               });
+
+              if (revertedWallet.type === 'CASH' && revertedWallet.balance < 0) {
+                throw new Error(`Reverting this transaction would make the Cash wallet balance negative.`);
+              }
             }
 
             // Apply updates
@@ -479,10 +487,14 @@ export const createAgentTools = (userId) => {
             // Apply new transaction's impact on the target wallet
             if (finalTx.walletId) {
               const newAdjustment = targetType === 'INCOME' ? targetAmount : -targetAmount;
-              await tx.wallet.update({
+              const updatedWallet = await tx.wallet.update({
                 where: { id: finalTx.walletId },
                 data: { balance: { increment: newAdjustment } },
               });
+
+              if (updatedWallet.type === 'CASH' && updatedWallet.balance < 0) {
+                throw new Error(`Insufficient funds. This update would make the Cash wallet balance negative.`);
+              }
             }
 
             return finalTx;

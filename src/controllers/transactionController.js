@@ -220,6 +220,14 @@ export const createTransaction = async (req, res, next) => {
         error.statusCode = 400;
         return next(error);
       }
+      if (wallet.type === 'CASH' && typeUpper === 'EXPENSE') {
+        const parsedAmount = parseFloat(amount);
+        if (wallet.balance - parsedAmount < 0) {
+          const error = new Error(`Transaction rejected: Insufficient funds. Cash wallet balance cannot go below zero (Attempted to spend ${parsedAmount} INR, current balance is ${wallet.balance} INR).`);
+          error.statusCode = 400;
+          return next(error);
+        }
+      }
     }
 
     // Resolve category
@@ -435,7 +443,7 @@ export const updateTransaction = async (req, res, next) => {
       if (transaction.walletId) {
         const oldAmount = transaction.amount;
         const revertAdjustment = transaction.type === 'INCOME' ? -oldAmount : oldAmount;
-        await tx.wallet.update({
+        const updatedOldWallet = await tx.wallet.update({
           where: { id: transaction.walletId },
           data: {
             balance: {
@@ -443,6 +451,10 @@ export const updateTransaction = async (req, res, next) => {
             },
           },
         });
+
+        if (updatedOldWallet.type === 'CASH' && updatedOldWallet.balance < 0) {
+          throw new Error(`Transaction rejected: Reverting this transaction would make the Cash wallet balance negative (${updatedOldWallet.balance} INR).`);
+        }
       }
 
       // 2. Update Transaction
@@ -471,7 +483,7 @@ export const updateTransaction = async (req, res, next) => {
       if (updatedTx.walletId) {
         const newAmount = updatedTx.amount;
         const newAdjustment = updatedTx.type === 'INCOME' ? newAmount : -newAmount;
-        await tx.wallet.update({
+        const updatedNewWallet = await tx.wallet.update({
           where: { id: updatedTx.walletId },
           data: {
             balance: {
@@ -479,6 +491,10 @@ export const updateTransaction = async (req, res, next) => {
             },
           },
         });
+
+        if (updatedNewWallet.type === 'CASH' && updatedNewWallet.balance < 0) {
+          throw new Error(`Transaction rejected: Insufficient funds. Cash wallet balance cannot go below zero (Final balance would be ${updatedNewWallet.balance} INR).`);
+        }
       }
 
       return updatedTx;
