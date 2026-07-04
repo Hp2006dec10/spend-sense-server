@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String        @id @default(uuid())
+  email           String        @unique
+  fullName        String
+  passwordHash    String
+  isActive        Boolean       @default(false)
+  isEmailVerified Boolean       @default(false)
+  loginAttempts   Int           @default(0)
+  lockoutUntil    DateTime?
+  preferredCurrency String      @default("INR")
+  isAiEnabled     Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  otps            Otp[]
+  auditLogs       AuditLog[]
+  transactions    Transaction[]
+  categories      Category[]
+  tags            Tag[]
+  wallets         Wallet[]
+  chatSessions    ChatSession[]
+  agentMemories   AgentMemory[]
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  type      String   // "REGISTRATION" or "PASSWORD_RESET"
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Category {
+  id           String        @id @default(uuid())
+  userId       String?       // null for system/default categories
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         String        // "EXPENSE" or "INCOME"
+  color        String        @default("#4A90E2")
+  icon         String?       // icon name (e.g. Ionicons)
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+
+  @@unique([userId, name, type])
+}
+
+model Tag {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  color        String        @default("#A0AEC0")
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+
+  @@unique([userId, name])
+}
+
+model Wallet {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         String        // "CASH" or "BANK"
+  balance      Float         @default(0.0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Transaction {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String    @default("Transaction")
+  type          String    // "EXPENSE" or "INCOME"
+  amount        Float
+  currency      String    @default("INR")
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade) // Deleting category deletes the transactions
+  notes         String?
+  paymentMethod String    @default("CASH") // CASH, CARD, BANK_TRANSFER, UPI, etc.
+  walletId      String?
+  wallet        Wallet?   @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  date          DateTime  @default(now())
+  tags          Tag[]     // Implicit many-to-many
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([date])
+  @@index([walletId])
+}
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      // "user" or "model"
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+}
+
+model AgentMemory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "PREFERENCE" (explicit rule), "HABIT" (learned pattern), "RULE" (custom logical rule)
+  key       String   // e.g., "laundry", "dosa", "food_default", "travel_home"
+  payload   Json     // Dynamic JSON containing fields (amount, category, options, confidence, etc.)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key, type])
+  @@index([userId])
+}
