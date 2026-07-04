@@ -4,6 +4,7 @@ import {
   getSummary,
   getPieChart,
   getMonthlyTrends,
+  getWalletPieChart,
 } from '../controllers/analyticsController.js';
 
 const router = express.Router();
@@ -14,5 +15,6 @@ router.use(protect);
 router.get('/summary', getSummary);
 router.get('/pie-chart', getPieChart);
 router.get('/trends', getMonthlyTrends);
+router.get('/wallet-pie-chart', getWalletPieChart);
 
 export default router;

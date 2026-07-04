@@ -202,3 +202,72 @@ export const getMonthlyTrends = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * 4. Get wallet distribution for Expense/Income (Pie chart data)
+ */
+export const getWalletPieChart = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const prefCurrency = await getUserPreferredCurrency(userId);
+    const { type } = req.query || {};
+
+    const filterType = type ? type.toUpperCase() : 'EXPENSE';
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        type: filterType,
+      },
+      include: {
+        wallet: true,
+      },
+    });
+
+    // Group and convert amounts by wallet
+    const walletGroups = {};
+    let totalVolume = 0;
+
+    for (const tx of transactions) {
+      const walletName = tx.wallet ? tx.wallet.name : 'Unknown Wallet';
+      const walletId = tx.wallet ? tx.wallet.id : 'unknown';
+      const walletType = tx.wallet ? tx.wallet.type : 'CASH';
+
+      const convertedAmount = convertCurrencySync(tx.amount, tx.currency, prefCurrency);
+      totalVolume += convertedAmount;
+
+      if (!walletGroups[walletId]) {
+        walletGroups[walletId] = {
+          id: walletId,
+          name: walletName,
+          type: walletType,
+          amount: 0,
+        };
+      }
+      walletGroups[walletId].amount += convertedAmount;
+    }
+
+    // Modern color palette for wallets
+    const walletColors = ['#3498DB', '#2ECC71', '#E67E22', '#9B59B6', '#E74C3C', '#F1C40F', '#1ABC9C'];
+
+    // Format output with percentages and round values
+    const data = Object.values(walletGroups).map((item, index) => {
+      const amountRounded = Math.round(item.amount * 100) / 100;
+      const percentage = totalVolume > 0 ? (amountRounded / totalVolume) * 100 : 0;
+      return {
+        ...item,
+        color: walletColors[index % walletColors.length],
+        amount: amountRounded,
+        percentage: Math.round(percentage * 10) / 10,
+      };
+    }).sort((a, b) => b.amount - a.amount);
+
+    res.status(200).json({
+      preferredCurrency: prefCurrency,
+      totalVolume: Math.round(totalVolume * 100) / 100,
+      wallets: data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
