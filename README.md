@@ -11,18 +11,15 @@ SpendSense Backend is a production-grade, highly secure Express.js API server bu
 - **Database ORM**: Prisma ORM
 - **Database Engine**: PostgreSQL (Supabase pooler ready)
 - **Authentication**: JWT (Double token: Access + Refresh flow), bcrypt hashing
-- **Security**: OTP system (cryptographically secure, hashed in DB), lockout brute force protection
 - **AI Engine**: LangChain integration with `@langchain/google-genai` (supporting tool-calling ReAct loops)
-- **Email Server**: Nodemailer SMTP configuration (OTP dispatching)
 
 ---
 
 ## 🌟 Features Highlight
 
 ### 1. Secure Authentication Flow
-- **User Registration**: Submits email, full name, and password (enforcing security rules). Sends a cryptographically secure 6-digit verification OTP.
-- **OTP Verification & Expiry**: Verifies hashed OTPs, preventing replay attacks. Standard 10-minute validity expiry.
-- **Brute Force Defense**: Accrues lockouts (30-minute block) after 3 failed login attempts or 5 failed OTP inputs.
+- **User Registration**: Submits email, full name, and password (enforcing security rules).
+- **Brute Force Defense**: Accrues lockouts (30-minute block) after 3 failed login attempts.
 
 ### 2. Anonymous Testing Gateway
 - Built for competition evaluations.
@@ -46,12 +43,8 @@ SpendSense Backend is a production-grade, highly secure Express.js API server bu
 ### 🔐 Authentication (`/api/auth`)
 | HTTP Method | Route | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| **POST** | `/signup` | Initialize user signup and send OTP | No |
-| **POST** | `/verify-otp` | Verify registration/reset OTP | No |
-| **POST** | `/resend-otp` | Resend valid OTP to email | No |
+| **POST** | `/signup` | Initialize user signup | No |
 | **POST** | `/login` | Standard password verification, returns tokens | No |
-| **POST** | `/forgot-password` | Initialize password reset OTP dispatch | No |
-| **POST** | `/reset-password` | Set new password using reset JWT token | No |
 | **POST** | `/refresh` | Obtain fresh Access/Refresh tokens | No |
 | **POST** | `/gateway-bypass` | Bypasses login, seeds mock account and returns JWT | No |
 | **POST** | `/logout` | Invalidate session | Yes |
@@ -111,13 +104,6 @@ DATABASE_URL=postgresql://<username>:<password>@<host>:<port>/<dbname>
 # JWT Authentication Secrets
 JWT_ACCESS_SECRET=your-secure-access-token-secret
 JWT_REFRESH_SECRET=your-secure-refresh-token-secret
-
-# SMTP Email Configuration (used to send OTPs)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-email-app-password
-SMTP_FROM=your-email@gmail.com
 
 # AI Configuration (Optional globally, falls back to user key)
 GEMINI_API_KEY=your-global-gemini-api-key
