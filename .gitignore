@@ -33,3 +33,4 @@ Thumbs.db
 # PROMPT FILES
 *.md
 !README.md
+!SKILL.md
