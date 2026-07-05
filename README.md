@@ -87,8 +87,9 @@ SpendSense Backend is a production-grade, highly secure Express.js API server bu
 - **PostgreSQL**: An active database instance (e.g. Supabase, local Postgres)
 
 ### 2. Installation
-Navigate to the backend directory and install required dependencies:
+Clone the directory and install required dependencies:
 ```bash
+git clone https://github.com/Hp2006dec10/spend-sense-server.git
 npm install
 ```
 
